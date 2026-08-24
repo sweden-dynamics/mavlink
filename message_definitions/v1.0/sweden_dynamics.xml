@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<mavlink>
+  <!-- Sweden Dynamics private dialect                                  -->
+  <!-- company URL: https://swedendynamics.com                          -->
+  <!-- mavlink ID range: 53000 - 53099 (private, never upstreamed)      -->
+  <!-- Canonical home: sweden-dynamics/mavlink fork. Consumed by the    -->
+  <!-- PX4 fork (as its mavlink submodule) and GCS software.            -->
+  <include>development.xml</include>
+  <enums>
+    <enum name="SD_CONTROLLER_INPUT_FLAGS" bitmask="true">
+      <description>Status and switch flags for SD_CONTROLLER_INPUT.</description>
+      <entry value="1" name="SD_CONTROLLER_INPUT_FLAGS_FAILSAFE">
+        <description>The link upstream of the sender is in failsafe: the forwarded input is stale or synthesized, not live operator input. The flight controller treats this like any RC failsafe.</description>
+      </entry>
+      <entry value="2" name="SD_CONTROLLER_INPUT_FLAGS_ARMED">
+        <description>Operator ARMED switch is on.</description>
+      </entry>
+      <entry value="4" name="SD_CONTROLLER_INPUT_FLAGS_ESTOP">
+        <description>Operator E-stop is engaged.</description>
+      </entry>
+    </enum>
+    <enum name="SD_CONTROLLER_INPUT_AUX_SWITCHES" bitmask="true">
+      <description>Two-position auxiliary switches aux06-aux12 of SD_CONTROLLER_INPUT, one bit each.</description>
+      <entry value="1" name="SD_CONTROLLER_INPUT_AUX06"><description>aux06 is on.</description></entry>
+      <entry value="2" name="SD_CONTROLLER_INPUT_AUX07"><description>aux07 is on.</description></entry>
+      <entry value="4" name="SD_CONTROLLER_INPUT_AUX08"><description>aux08 is on.</description></entry>
+      <entry value="8" name="SD_CONTROLLER_INPUT_AUX09"><description>aux09 is on.</description></entry>
+      <entry value="16" name="SD_CONTROLLER_INPUT_AUX10"><description>aux10 is on.</description></entry>
+      <entry value="32" name="SD_CONTROLLER_INPUT_AUX11"><description>aux11 is on.</description></entry>
+      <entry value="64" name="SD_CONTROLLER_INPUT_AUX12"><description>aux12 is on.</description></entry>
+    </enum>
+  </enums>
+  <messages>
+    <message id="53000" name="SD_CONTROLLER_INPUT">
+      <description>Controller input sent by a ground control station, one stream per physical link, routed unmodified to the flight controller (typically MAVLink over UDP to a companion computer acting as MAVLink router, then MAVLink over USB/serial to the FC - the router never parses or muxes). The GCS tags each stream itself: links carrying the same operator's controls share a controller_id (e.g. the LoRa link and the IP-radio link of one transmitter); link_id identifies the redundant link within that controller and doubles as the flight controller's selection priority (lower wins). The payload is the Sweden Dynamics packed controller frame, as defined for the Gungnir radio link and reused on every input path so the flight controller's input mux sees one format: four 10-bit stick channels, two 8-bit, one 3-bit and two 2-bit auxiliary channels, seven two-position auxiliary switches, and the ARMED and E-stop switches carried in flags. A stick value of UINT16_MAX means that channel carries no data; the auxiliary channels always carry data. Nominal rate 50 Hz per link.</description>
+      <field type="uint8_t" name="target_system">System ID of the vehicle to control (0 for broadcast).</field>
+      <field type="uint8_t" name="controller_id">Physical controller this input belongs to. Controller 0 is the primary operator.</field>
+      <field type="uint8_t" name="link_id">Redundant link within the controller; selection priority (lower wins).</field>
+      <field type="uint8_t" name="seq">Per-link frame counter, wraps at 255. Set at the origin, so gaps measure loss anywhere along the GCS-to-FC path.</field>
+      <field type="uint8_t" name="flags" enum="SD_CONTROLLER_INPUT_FLAGS">Link status flags and the ARMED / E-stop switches.</field>
+      <field type="uint16_t[4]" name="chn" invalid="[UINT16_MAX]">Stick channels chn01-chn04, 10-bit, 0-1023. UINT16_MAX = channel not present.</field>
+      <field type="uint8_t" name="aux01">Auxiliary channel aux01, 8-bit, 0-255.</field>
+      <field type="uint8_t" name="aux02">Auxiliary channel aux02, 8-bit, 0-255.</field>
+      <field type="uint8_t" name="aux03">Auxiliary channel aux03, 3-bit, 0-7.</field>
+      <field type="uint8_t" name="aux04">Auxiliary channel aux04, 2-bit, 0-3.</field>
+      <field type="uint8_t" name="aux05">Auxiliary channel aux05, 2-bit, 0-3.</field>
+      <field type="uint8_t" name="aux_switches" enum="SD_CONTROLLER_INPUT_AUX_SWITCHES">Two-position auxiliary switches aux06-aux12, one bit each.</field>
+      <field type="uint8_t" name="link_quality" units="%" invalid="UINT8_MAX">Link quality of this link, 0-100. UINT8_MAX: unknown.</field>
+      <field type="int8_t" name="rssi_dbm" units="dBm" invalid="INT8_MAX">RSSI of this link in dBm (negative). INT8_MAX: unknown.</field>
+    </message>
+  </messages>
+</mavlink>
