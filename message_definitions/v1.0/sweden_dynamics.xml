@@ -49,21 +49,15 @@
       <field type="int8_t" name="rssi_dbm" units="dBm" invalid="INT8_MAX">RSSI of this link in dBm (negative). INT8_MAX: unknown.</field>
     </message>
     <message id="53001" name="SD_OPTICAL_FLOW_RAD">
-      <description>Optical flow from the companion-computer vision pipeline, one message per frame pair. The standard OPTICAL_FLOW_RAD payload plus the divergence extension, sent atomically. The sender is a body-FRD virtual nadir sensor (consumer must set its flow rotation to none) whose flow is already rotation-compensated: the gyro integral fields are always zero - zero, never NaN, so the consumer does not substitute its own gyro and compensate a second time. Scale-free by design: distance is always -1, the sender never claims to know height; divergence together with a vertical speed source recovers height above the visible surface downstream. Refused frame pairs are sent as quality-0 messages rather than gaps, so no-data and bad-data stay distinguishable. Nominal rate ~30 Hz at hover, degrading to ~20 Hz under fast motion by dropping pairs rather than queueing.</description>
+      <description>Optical flow from the companion-computer vision pipeline, one message per frame pair, with the companion's height above ground and its uncertainty, sent atomically. The sender is a body-FRD virtual nadir sensor (consumer must set its flow rotation to none) whose flow is already rotation-compensated: there are no gyro integrals, and the consumer must not compensate with its own gyro (treat the sensor's rotation as zero). Refused frame pairs are sent with flow_sigma NaN rather than as gaps, so no-data and bad-data stay distinguishable. Rate follows the frame pairing, up to the camera's decoded frame rate.</description>
       <field type="uint64_t" name="time_usec" units="us">Trailing edge of the flow integration interval, stamped at the later frame's exposure time on the sender's clock. The consumer must convert clocks via TIMESYNC and must not re-center: it applies the mid-interval correction itself.</field>
       <field type="uint8_t" name="sensor_id" instance="true">Sensor ID. 0 is the primary vision pipeline.</field>
       <field type="uint32_t" name="integration_time_us" units="us">Integration interval between the frame pair. Reported honestly on refused pairs too, so the stream stays continuous.</field>
       <field type="float" name="integrated_x" units="rad">Flow around X axis. Sensor linear motion along the positive Y axis induces a negative flow. Rotation already removed by the sender.</field>
       <field type="float" name="integrated_y" units="rad">Flow around Y axis. Sensor linear motion along the positive X axis induces a positive flow. Rotation already removed by the sender.</field>
-      <field type="float" name="integrated_xgyro" units="rad">Always 0: rotation is pre-compensated by the sender (zero, never NaN).</field>
-      <field type="float" name="integrated_ygyro" units="rad">Always 0: rotation is pre-compensated by the sender (zero, never NaN).</field>
-      <field type="float" name="integrated_zgyro" units="rad">Always 0: rotation is pre-compensated by the sender (zero, never NaN).</field>
-      <field type="int16_t" name="temperature" units="cdegC">Unused, always 0.</field>
-      <field type="uint8_t" name="quality">Lateral flow quality, 0-255. 0: refused pair (still sent, never a gap), 255: maximum quality.</field>
-      <field type="uint32_t" name="time_delta_distance_us" units="us">Unused, always 0. No rangefinder in this stream.</field>
-      <field type="float" name="distance" units="m" invalid="-1">Always -1 (unknown): the sender never measures height.</field>
-      <field type="float" name="divergence">Ground-plane range rate (t/d)_z = vz/hagl in 1/s, positive closing. Divergence and lateral flow fail independently; gate on divergence_quality, not quality.</field>
-      <field type="uint8_t" name="divergence_quality">Divergence quality, 0-255, independent of quality (hover kills divergence while lateral flow is fine). 0: do not use.</field>
+      <field type="float" name="flow_sigma" units="rad/s" invalid="NaN">1-sigma uncertainty of the flow rate (integrated_x and integrated_y divided by integration_time_us), per axis. NaN: refused pair, no valid flow (still sent, never a gap).</field>
+      <field type="float" name="hagl" units="m" invalid="-1">Height above ground level: vertical height of the sensor above the visible surface below it (ground, or canopy where that is what the camera sees) - not a slant range along the sensor axis. From the companion's own height source (map height, estimator, terrain matching), valid at time_usec. -1: unknown.</field>
+      <field type="float" name="hagl_sigma" units="m" invalid="NaN">1-sigma uncertainty of hagl. NaN: unknown.</field>
     </message>
   </messages>
 </mavlink>
